@@ -32,6 +32,12 @@ pm2 reload mewa-gamification
 pm2 stop mewa-gamification
 ```
 
+# start the app again
+
+```bash
+pm2 start mewa-gamification
+```
+
 ## Quick Commands
 
 ```bash
