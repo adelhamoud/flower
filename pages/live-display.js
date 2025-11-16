@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import Head from "next/head";
 import { QRCodeSVG } from "qrcode.react";
 import Image from "next/image";
-import pattern2 from "../brand/Pattern (2).png";
+import pattern2 from "../brand/pattern(2).png";
+import { preloadRouteImages } from "../lib/imagePreloader";
 
 // Flower name to color mapping
 const flowerColors = {
@@ -178,6 +179,11 @@ export default function LiveDisplay() {
   }, []);
 
   useEffect(() => {
+    // Preload images for live display
+    preloadRouteImages("/live-display");
+  }, []);
+
+  useEffect(() => {
     if (typeof window !== "undefined") {
       setRegistrationUrl(qrcodeUrl);
     }
@@ -320,11 +326,14 @@ export default function LiveDisplay() {
           </div>
           <div className="container mx-auto px-4 relative z-10">
             <div className="flex flex-col items-center justify-center gap-2">
-              <div className="w-48 md:w-56 h-auto">
-                <img
+              <div className="relative w-48 md:w-56 h-24 md:h-28">
+                <Image
                   src="https://www.mewa.gov.sa/_layouts/15/MewaPortal/mewa-branding/svg/mewa-logo-footer.svg"
                   alt="شعار الوزارة"
-                  className="w-full h-auto"
+                  fill
+                  sizes="(max-width: 768px) 192px, 224px"
+                  style={{ objectFit: "contain" }}
+                  priority
                 />
               </div>
               <div className="text-center">
@@ -473,7 +482,9 @@ function FlowerItem({ user, x, y, size, zIndex, overlapping }) {
             src={user.flower.flowerImage || "/flowers/الاقحوان_البري2.png"}
             alt={user.flower.seedName}
             fill
+            sizes="(max-width: 130px) 100px, 130px"
             style={{ objectFit: "contain" }}
+            loading="lazy"
           />
         </div>
         <div className="text-center mt-1">

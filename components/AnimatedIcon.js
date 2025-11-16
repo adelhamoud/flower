@@ -12,9 +12,10 @@ const AnimatedIcon = ({ src, alt, size, position, animationClass }) => {
         alt={alt}
         width={0} // Required for responsive fill with `sizes` prop
         height={0}
-        sizes="100vw"
+        sizes="(max-width: 768px) 80px, 112px"
         // The `size` prop (e.g., "w-20 h-20") is applied to the image.
         className={`object-contain ${size}`}
+        loading="lazy"
       />
     </div>
   );

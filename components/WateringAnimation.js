@@ -18,7 +18,9 @@ const WateringAnimation = ({ position, size }) => {
         alt="Watering can"
         width={128}
         height={128}
+        sizes="(max-width: 768px) 96px, 128px"
         className="object-contain w-full h-full animate-watering-can"
+        loading="lazy"
       />
       {/* 3. The water drops image. It is positioned relative to the container and animates falling. */}
       <Image
@@ -26,7 +28,9 @@ const WateringAnimation = ({ position, size }) => {
         alt="Water drops"
         width={64}
         height={64}
+        sizes="(max-width: 768px) 32px, 64px"
         className="object-contain absolute top-[60%] left-[0%] w-1/2 h-1/2 animate-water-drops"
+        loading="lazy"
       />
     </div>
   );

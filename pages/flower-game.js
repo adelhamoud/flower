@@ -7,6 +7,7 @@ import Image from "next/image";
 import logo from "../brand/logo.png";
 import WateringAnimation from "../components/WateringAnimation";
 import AnimatedIcon from "../components/AnimatedIcon";
+import { preloadAllImages } from "../lib/imagePreloader";
 
 let socket;
 
@@ -22,31 +23,15 @@ export default function FlowerGame() {
   const [showGrowthAnimation, setShowGrowthAnimation] = useState(false);
   const [imagesPreloaded, setImagesPreloaded] = useState(false);
 
-  // Preload all flower images on mount for faster loading
+  // Preload all images on mount for faster loading
   useEffect(() => {
-    const allImages = [
-      "/flowers/بذور.png",
-      "/flowers/water.png",
-      "/flowers/watering.png",
-      "/flowers/sun.png",
-      "/flowers/love.png",
-    ];
-
-    // Add all flower images
-    flowerGameData.forEach((plant) => {
-      allImages.push(plant.seedImage);
-      allImages.push(plant.flowerImageStage1);
-      allImages.push(plant.flowerImage);
-    });
-
-    // Preload in background
-    allImages.forEach((src) => {
-      const img = new window.Image();
-      img.src = src;
+    // Use the comprehensive preloader
+    preloadAllImages().catch((err) => {
+      console.warn("Some images failed to preload:", err);
     });
   }, []);
 
-  // Preload images for selected plant
+  // Preload images for selected plant immediately when plant is selected
   useEffect(() => {
     if (selectedPlant) {
       const imagesToPreload = [
@@ -59,23 +44,52 @@ export default function FlowerGame() {
         "/flowers/love.png",
       ];
 
+      // Preload all images and ensure they're fully cached
       Promise.all(
         imagesToPreload.map((src) => {
-          return new Promise((resolve, reject) => {
+          return new Promise((resolve) => {
+            // Check if image is already cached
             const img = new window.Image();
+
+            // Set up load handlers before setting src
+            img.onload = () => {
+              // Double-check the image is actually loaded
+              if (img.complete && img.naturalWidth > 0) {
+                console.log("✅ Preloaded:", src);
+                resolve();
+              } else {
+                // Retry if not fully loaded
+                setTimeout(() => {
+                  if (img.complete && img.naturalWidth > 0) {
+                    resolve();
+                  } else {
+                    console.warn("⚠️ Image may not be fully loaded:", src);
+                    resolve(); // Continue anyway
+                  }
+                }, 100);
+              }
+            };
+
+            img.onerror = () => {
+              console.error("❌ Failed to preload:", src);
+              resolve(); // Continue even if one fails
+            };
+
+            // Set src to trigger loading
             img.src = src;
-            img.onload = resolve;
-            img.onerror = reject;
           });
         })
       )
         .then(() => {
+          console.log("🎉 All animation images preloaded!");
           setImagesPreloaded(true);
         })
         .catch((err) => {
           console.error("Error preloading images:", err);
           setImagesPreloaded(true); // Continue anyway
         });
+    } else {
+      setImagesPreloaded(false);
     }
   }, [selectedPlant]);
 
@@ -116,14 +130,34 @@ export default function FlowerGame() {
   useEffect(() => {
     // Initialize socket connection
     const socketInitializer = async () => {
-      await fetch("/api/socket");
-      socket = io({
-        path: "/api/socket",
-      });
+      try {
+        const response = await fetch("/api/socket");
+        if (!response.ok) {
+          console.warn(
+            "Socket initialization returned non-OK status:",
+            response.status
+          );
+          // Continue anyway, socket might already be initialized
+        }
+        socket = io({
+          path: "/api/socket",
+          transports: ["websocket", "polling"],
+          reconnection: true,
+          reconnectionDelay: 1000,
+          reconnectionAttempts: 5,
+        });
 
-      socket.on("connect", () => {
-        console.log("Connected to socket server");
-      });
+        socket.on("connect", () => {
+          console.log("Connected to socket server");
+        });
+
+        socket.on("connect_error", (error) => {
+          console.warn("Socket connection error:", error);
+        });
+      } catch (error) {
+        console.warn("Failed to initialize socket:", error);
+        // Continue without socket - the app will still work
+      }
     };
 
     socketInitializer();
@@ -147,7 +181,12 @@ export default function FlowerGame() {
     if (currentQuestionIndex < selectedPlant.questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
-      // All questions answered - wait for images to preload before showing animation
+      // All questions answered - ensure images are loaded before showing animation
+      console.log("🌱 Selected Plant:", selectedPlant.seedName);
+      console.log("📁 Seed Image:", selectedPlant.seedImage);
+      console.log("📁 Stage 1 Image:", selectedPlant.flowerImageStage1);
+      console.log("📁 Final Image:", selectedPlant.flowerImage);
+
       const imagesToPreload = [
         selectedPlant.seedImage,
         selectedPlant.flowerImageStage1,
@@ -158,61 +197,88 @@ export default function FlowerGame() {
         "/flowers/love.png",
       ];
 
-      console.log("🌱 Selected Plant:", selectedPlant.seedName);
-      console.log("📁 Seed Image:", selectedPlant.seedImage);
-      console.log("📁 Stage 1 Image:", selectedPlant.flowerImageStage1);
-      console.log("📁 Final Image:", selectedPlant.flowerImage);
-      console.log("📋 All images to preload:", imagesToPreload);
-
-      // Show loading state
-      setImagesPreloaded(false);
+      // Show loading state first
       setShowGrowthAnimation(true);
+      setImagesPreloaded(false);
 
-      // Preload all images first
-      Promise.all(
-        imagesToPreload.map((src) => {
-          return new Promise((resolve) => {
-            const img = new window.Image();
-            img.src = src;
-            img.onload = () => {
-              console.log("✅ Loaded:", src);
+      // Function to verify image is fully loaded
+      const verifyImageLoaded = (src) => {
+        return new Promise((resolve) => {
+          const img = new window.Image();
+
+          img.onload = () => {
+            // Double-check the image is actually loaded and has dimensions
+            if (img.complete && img.naturalWidth > 0 && img.naturalHeight > 0) {
+              console.log("✅ Verified loaded:", src);
               resolve();
-            };
-            img.onerror = (err) => {
-              console.error("❌ Failed to load:", src, err);
-              resolve(); // Continue even if one fails
-            };
-          });
-        })
-      ).then(() => {
-        console.log("🎉 All images loaded, starting animation!");
-        // Images are loaded, now start the animation
-        setImagesPreloaded(true);
+            } else {
+              // Wait a bit and retry
+              setTimeout(() => {
+                if (img.complete && img.naturalWidth > 0) {
+                  resolve();
+                } else {
+                  console.warn("⚠️ Image verification incomplete:", src);
+                  resolve(); // Continue anyway
+                }
+              }, 200);
+            }
+          };
 
-        // After animation, show result
-        setTimeout(() => {
-          setShowGrowthAnimation(false);
-          setCurrentStep("result");
+          img.onerror = () => {
+            console.error("❌ Failed to load:", src);
+            resolve(); // Continue even if one fails
+          };
 
-          // Emit to socket
-          if (socket) {
-            socket.emit("flower:new", {
-              userId: userId,
-              userName: userName,
-              phone: userPhone,
-              seedName: selectedPlant.seedName,
-              flowerImage: selectedPlant.flowerImage,
-              level: 1, // First completed activity counts as level 1
-            });
+          // Set src to trigger loading (or use cached version)
+          img.src = src;
+
+          // If already cached, trigger onload immediately
+          if (img.complete && img.naturalWidth > 0) {
+            resolve();
           }
+        });
+      };
 
-          // Update localStorage
-          const savedProgress = localStorage.getItem("gameProgress");
-          const progress = savedProgress ? JSON.parse(savedProgress) : {};
-          progress.flowerGame = true;
-          localStorage.setItem("gameProgress", JSON.stringify(progress));
-        }, 6000); // 6 seconds for growth animation
-      });
+      // Wait for all images to be fully loaded and verified
+      Promise.all(imagesToPreload.map(verifyImageLoaded))
+        .then(() => {
+          console.log("🎉 All animation images verified and ready!");
+
+          // Small delay to ensure images are in browser cache
+          setTimeout(() => {
+            setImagesPreloaded(true);
+            console.log("✨ Starting animation!");
+
+            // After animation completes, show result
+            setTimeout(() => {
+              setShowGrowthAnimation(false);
+              setCurrentStep("result");
+
+              // Emit to socket
+              if (socket) {
+                socket.emit("flower:new", {
+                  userId: userId,
+                  userName: userName,
+                  phone: userPhone,
+                  seedName: selectedPlant.seedName,
+                  flowerImage: selectedPlant.flowerImage,
+                  level: 1, // First completed activity counts as level 1
+                });
+              }
+
+              // Update localStorage
+              const savedProgress = localStorage.getItem("gameProgress");
+              const progress = savedProgress ? JSON.parse(savedProgress) : {};
+              progress.flowerGame = true;
+              localStorage.setItem("gameProgress", JSON.stringify(progress));
+            }, 6000); // 6 seconds for growth animation
+          }, 100); // Small delay to ensure cache is ready
+        })
+        .catch((err) => {
+          console.error("Error loading images:", err);
+          // Still show animation even if some images failed
+          setImagesPreloaded(true);
+        });
     }
   };
 
@@ -228,15 +294,20 @@ export default function FlowerGame() {
         <title>لعبة الوَرْد - وزارة البيئة والمياه والزراعة</title>
       </Head>
 
-      <div
-        className="min-h-screen py-8 relative"
-        style={{
-          backgroundImage: "url(/fgbg.png)",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundAttachment: "fixed",
-        }}
-      >
+      <div className="min-h-screen py-8 relative">
+        {/* Optimized background image */}
+        <div className="fixed inset-0 -z-10">
+          <Image
+            src="/fgbg.png"
+            alt=""
+            fill
+            sizes="100vw"
+            style={{ objectFit: "cover" }}
+            priority
+            quality={75}
+            className="object-cover"
+          />
+        </div>
         {/* Overlay for better readability */}
         <div className="absolute inset-0 bg-white/40 backdrop-blur-sm"></div>
 
@@ -269,7 +340,7 @@ export default function FlowerGame() {
               </div>
 
               <div className="grid grid-cols-2 gap-4 md:gap-6">
-                {flowerGameData.map((plant) => (
+                {flowerGameData.map((plant, index) => (
                   <button
                     key={plant.id}
                     onClick={() => handlePlantSelect(plant)}
@@ -283,7 +354,8 @@ export default function FlowerGame() {
                         sizes="(max-width: 768px) 50vw, 33vw"
                         style={{ objectFit: "contain" }}
                         className="group-hover:scale-110 transition-transform duration-300"
-                        priority
+                        priority={index < 2}
+                        loading={index < 2 ? undefined : "lazy"}
                       />
                     </div>
                     <div className="text-lg md:text-2xl font-bold text-mewa-green-700 group-hover:text-mewa-green-600">
@@ -315,6 +387,7 @@ export default function FlowerGame() {
                           fill
                           sizes="48px"
                           style={{ objectFit: "contain" }}
+                          loading="lazy"
                         />
                       </div>
                     )}
@@ -343,6 +416,7 @@ export default function FlowerGame() {
                           fill
                           sizes="64px"
                           style={{ objectFit: "contain" }}
+                          loading="lazy"
                         />
                       </div>
                     )}
@@ -398,7 +472,9 @@ export default function FlowerGame() {
                           alt="بذور"
                           width={110}
                           height={110}
+                          sizes="(max-width: 768px) 64px, 112px"
                           className="object-contain w-16 h-16 md:w-28 md:h-28"
+                          priority
                         />
                       </div>
                       {/* Phase 2: Sprout */}
@@ -408,7 +484,9 @@ export default function FlowerGame() {
                           alt={`${selectedPlant.seedName} - مرحلة النمو`}
                           width={180}
                           height={180}
+                          sizes="(max-width: 768px) 128px, 176px"
                           className="object-contain w-32 h-32 md:w-44 md:h-44"
+                          priority
                         />
                       </div>
                       {/* Phase 3: Full Flower */}
@@ -418,7 +496,9 @@ export default function FlowerGame() {
                           alt={`${selectedPlant.seedName} - مرحلة الإزهار الكامل`}
                           width={260}
                           height={260}
+                          sizes="(max-width: 768px) 176px, 256px"
                           className="object-contain w-44 h-44 md:w-64 md:h-64"
+                          priority
                         />
                       </div>
                     </div>
@@ -432,14 +512,18 @@ export default function FlowerGame() {
                         alt="Watering can"
                         width={128}
                         height={128}
+                        sizes="(max-width: 768px) 96px, 128px"
                         className="object-contain w-full h-full animate-watering-can"
+                        priority
                       />
                       <Image
                         src="/flowers/water.png"
                         alt="Water drops"
                         width={64}
                         height={64}
+                        sizes="(max-width: 768px) 40px, 64px"
                         className="object-contain absolute top-[100%] right-[90%] w-10 h-10 md:w-16 md:h-16 animate-water-drops"
+                        priority
                       />
                     </div>
 
@@ -483,6 +567,7 @@ export default function FlowerGame() {
                     style={{ objectFit: "contain" }}
                     className="animate-bounce-slow"
                     priority
+                    quality={90}
                   />
                 </div>
                 <h2 className="text-3xl font-bold text-mewa-green-700 mb-2">

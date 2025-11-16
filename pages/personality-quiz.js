@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import { personalityQuizData } from "../lib/content";
 import Image from "next/image";
 import logo from "../brand/logo.png";
+import { preloadRouteImages } from "../lib/imagePreloader";
 
 export default function PersonalityQuiz() {
   const router = useRouter();
@@ -18,6 +19,11 @@ export default function PersonalityQuiz() {
   const [showResult, setShowResult] = useState(false);
   const [result, setResult] = useState(null);
   const [userIdentifiers, setUserIdentifiers] = useState({ id: "", phone: "" });
+
+  // Preload images on mount
+  useEffect(() => {
+    preloadRouteImages("/personality-quiz");
+  }, []);
 
   // Check if user has completed previous game
   useEffect(() => {
@@ -128,15 +134,20 @@ export default function PersonalityQuiz() {
         <title>تحليل الشخصية - وزارة البيئة والمياه والزراعة</title>
       </Head>
 
-      <div
-        className="min-h-screen py-8 relative"
-        style={{
-          backgroundImage: "url(/pgbg.jpg)",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundAttachment: "fixed",
-        }}
-      >
+      <div className="min-h-screen py-8 relative">
+        {/* Optimized background image */}
+        <div className="fixed inset-0 -z-10">
+          <Image
+            src="/pgbg.jpg"
+            alt=""
+            fill
+            sizes="100vw"
+            style={{ objectFit: "cover" }}
+            priority
+            quality={75}
+            className="object-cover"
+          />
+        </div>
         {/* Overlay for better readability */}
         <div className="absolute inset-0 bg-white/30 backdrop-blur-sm"></div>
 
@@ -147,8 +158,11 @@ export default function PersonalityQuiz() {
               <Image
                 src={logo}
                 alt="شعار الوزارة"
+                width={120}
                 height={40}
+                sizes="120px"
                 className="hidden md:block"
+                priority
               />
               <h1 className="text-3xl md:text-4xl font-bold text-mewa-green-700">
                 تحليل الشخصية 🎭

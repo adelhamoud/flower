@@ -3,7 +3,8 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import GameCard from "../components/GameCard";
 import Image from "next/image";
-import pattern1 from "../brand/Pattern (1).png";
+import pattern1 from "../brand/pattern(1).png";
+import { preloadRouteImages } from "../lib/imagePreloader";
 
 export default function Home() {
   const router = useRouter();
@@ -15,6 +16,11 @@ export default function Home() {
   const [userData, setUserData] = useState(null);
 
   useEffect(() => {
+    // Preload images for potential next routes
+    preloadRouteImages("/flower-game");
+    preloadRouteImages("/personality-quiz");
+    preloadRouteImages("/commitment-quiz");
+
     // Check if user is registered
     const savedUserData = localStorage.getItem("userData");
     if (!savedUserData) {
@@ -40,7 +46,7 @@ export default function Home() {
         console.error("Error parsing game progress:", e);
       }
     }
-  }, []);
+  }, [router]);
 
   const allGamesCompleted =
     gameProgress.flowerGame &&
@@ -72,11 +78,14 @@ export default function Home() {
 
           <div className="container mx-auto px-3 sm:px-4 relative z-10">
             <div className="flex flex-col items-center justify-center gap-2 sm:gap-3 md:gap-4">
-              <div className="w-32 sm:w-40 md:w-48 lg:w-64 h-auto">
-                <img
+              <div className="relative w-32 sm:w-40 md:w-48 lg:w-64 h-16 sm:h-20 md:h-24 lg:h-32">
+                <Image
                   src="https://www.mewa.gov.sa/_layouts/15/MewaPortal/mewa-branding/svg/mewa-logo-footer.svg"
                   alt="شعار الوزارة"
-                  className="w-full h-auto"
+                  fill
+                  sizes="(max-width: 640px) 128px, (max-width: 768px) 160px, (max-width: 1024px) 192px, 256px"
+                  style={{ objectFit: "contain" }}
+                  priority
                 />
               </div>
               <div className="text-center px-2">

@@ -4,7 +4,8 @@ import { useRouter } from "next/router";
 import { commitmentQuizData } from "../lib/content";
 import Image from "next/image";
 import logo from "../brand/logo.png";
-import pattern1 from "../brand/Pattern (1).png";
+import pattern1 from "../brand/pattern(1).png";
+import { preloadRouteImages } from "../lib/imagePreloader";
 
 export default function CommitmentQuiz() {
   const router = useRouter();
@@ -13,6 +14,11 @@ export default function CommitmentQuiz() {
   const [showResult, setShowResult] = useState(false);
   const [result, setResult] = useState(null);
   const [userIdentifiers, setUserIdentifiers] = useState({ id: "", phone: "" });
+
+  // Preload images on mount
+  useEffect(() => {
+    preloadRouteImages("/commitment-quiz");
+  }, []);
 
   // Check if user has completed previous games
   useEffect(() => {
@@ -130,7 +136,9 @@ export default function CommitmentQuiz() {
                   src={pattern1}
                   alt="wave pattern"
                   fill
+                  sizes="100vw"
                   style={{ objectFit: "cover" }}
+                  loading="lazy"
                 />
               </div>
             </div>
@@ -138,8 +146,11 @@ export default function CommitmentQuiz() {
               <Image
                 src={logo}
                 alt="شعار الوزارة"
+                width={120}
                 height={40}
+                sizes="120px"
                 className="hidden md:block"
+                priority
               />
               <h1 className="text-3xl md:text-4xl font-bold text-mewa-green-700">
                 نسبة الالتزام بالقيم 📊
