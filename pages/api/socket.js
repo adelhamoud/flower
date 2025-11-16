@@ -1,6 +1,7 @@
 import { Server } from "socket.io";
 import fs from "fs";
 import path from "path";
+import { backupUsersFile } from "../../lib/backupUsers";
 
 const usersFilePath = path.join(process.cwd(), "data", "users.json");
 
@@ -41,6 +42,9 @@ function updateUserWithFlower(flowerData) {
       users[userIndex].updatedAt = new Date().toISOString();
 
       fs.writeFileSync(usersFilePath, JSON.stringify(users, null, 2));
+
+      // Create backup after writing
+      backupUsersFile(usersFilePath);
     } else {
       console.error("User not found for provided identifiers:", {
         userId: flowerData.userId,

@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
+import { backupUsersFile } from "../../lib/backupUsers";
 
 const generateUserId = () => {
   try {
@@ -83,6 +84,9 @@ export default async function handler(req, res) {
 
     // Save to file
     fs.writeFileSync(usersFile, JSON.stringify(users, null, 2), "utf8");
+
+    // Create backup
+    backupUsersFile(usersFile);
 
     return res.status(200).json({
       success: true,

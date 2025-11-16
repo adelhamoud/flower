@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { backupUsersFile } from "../../../lib/backupUsers";
 
 const usersFilePath = path.join(process.cwd(), "data", "users.json");
 
@@ -19,6 +20,8 @@ function readUsers() {
 
 function writeUsers(users) {
   fs.writeFileSync(usersFilePath, JSON.stringify(users, null, 2), "utf8");
+  // Create backup after writing
+  backupUsersFile(usersFilePath);
 }
 
 export default async function handler(req, res) {
