@@ -63,3 +63,7 @@ PORT=80
 
 - https://mewa-event.uselines.com (for users)
 - https://mewa-event.uselines.com/live-display (for live display)
+
+## Data Download
+
+- `https://mewa-event.uselines.com/api/download-users` (to download users data as JSON)
