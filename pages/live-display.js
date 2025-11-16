@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import Head from "next/head";
 import { QRCodeSVG } from "qrcode.react";
 import Image from "next/image";
-import pattern2 from "../brand/pattern(2).png";
+import pattern2 from "../brand/Pattern(2).png";
 import { preloadRouteImages } from "../lib/imagePreloader";
 
 // Flower name to color mapping

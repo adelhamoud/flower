@@ -3,7 +3,7 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import GameCard from "../components/GameCard";
 import Image from "next/image";
-import pattern1 from "../brand/pattern(1).png";
+import pattern1 from "../brand/Pattern(1).png";
 import { preloadRouteImages } from "../lib/imagePreloader";
 
 export default function Home() {

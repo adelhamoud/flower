@@ -4,7 +4,7 @@ import { useRouter } from "next/router";
 import { commitmentQuizData } from "../lib/content";
 import Image from "next/image";
 import logo from "../brand/logo.png";
-import pattern1 from "../brand/pattern(1).png";
+import pattern1 from "../brand/Pattern(1).png";
 import { preloadRouteImages } from "../lib/imagePreloader";
 
 export default function CommitmentQuiz() {
