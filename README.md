@@ -3,6 +3,8 @@
 ## First Time Setup
 
 ```bash
+git pull
+
 # Install dependencies
 npm install
 
@@ -19,6 +21,7 @@ pm2 startup
 
 ```bash
 # Rebuild and restart
+git pull
 npm run build
 pm2 reload mewa-gamification
 ```
